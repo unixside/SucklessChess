@@ -40,12 +40,13 @@ const reverseString = (str) => str.split("").reverse().join("");
 const mayus = (c) => c == c.toUpperCase();
 const minus = (c) => c == c.toLowerCase();
 const inverseCase = (str) =>
-      str.split("").map(c => mayus(c) ? c.toLowerCase() : c.toUpperCase()).join("");
+      str.split("")
+      .map(c => mayus(c) ? c.toLowerCase() : c.toUpperCase()).join("");
 
 const even = (x) => x % 2 === 0;
 
-const isWhiteBox = (r, c) => {
-    return (even(r) && even(c)) || (!even(r) && !even(c));
+const isWhiteBox = (c, r) => {
+    return (even(c) && even(r)) || (!even(c) && !even(r));
 };
 
 const colorPiece = (p) => mayus(p.id[0]) ? "w" : "b";
@@ -398,7 +399,7 @@ const pieceContainer = (id, size) => {
 	container.style.border = "";
     });
 
-    container.addEventListener("click", () => {	
+    container.addEventListener("click", () => {
 	if (selectedPiece === null) {	    
 	    selectedPiece = container;
 	    selectedPiece.classList.add('selected');
