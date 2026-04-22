@@ -1,4 +1,4 @@
-export type Board = Record<string, string | null>;
+import { Board, PiecesChar } from "./types";
 
 // prettier-ignore
 export const EmptyBoard: Board = {
@@ -29,7 +29,7 @@ export function createBoard(piecePlacement?: string[]): Board {
 
     if (piecePlacement !== undefined) {
         piecePlacement.forEach((value, index) => {
-            if (DefaultData.pieces.includes(value)) {
+            if (PiecesChar.includes(value)) {
                 let square_name: string | undefined = indexToSquareName(index);
                 if (square_name !== undefined) board[square_name] = value;
             }
