@@ -1,6 +1,6 @@
 import { Board, GameState, Rows } from "./types";
 import { ChessRegExp } from "./constants";
-import { createBoard } from "./gameController";
+import { createBoard } from "./board";
 
 export class Result<T> {
     protected constructor(
@@ -26,7 +26,7 @@ export class Result<T> {
 
     public GetValue() {
         if (this.IsFailure()) {
-            throw new Error("[Error]: Result is failure")
+            throw new Error("[Error]: Result is failure");
         }
         return this.value;
     }
@@ -45,33 +45,36 @@ export class Failure<E> extends Result<E> {
 }
 
 export namespace FenValidations {
-    function validateWithRegExp(value: string, regexp: RegExp, name: string): Result<string> {
+    function validateWithRegExp(
+        value: string,
+        regexp: RegExp,
+        name: string,
+    ): Result<string> {
         if (value === undefined || value === null || value === "") {
             return new Failure("Value is undefined, null or empty string");
         }
-        
-        if (!regexp.test(value)) return new Failure(`Invalid syntax for ${name}`);
+
+        if (!regexp.test(value))
+            return new Failure(`Invalid syntax for ${name}`);
 
         return new Success(value);
-        
     }
-    
-    export function piecePlacement(value?: string): Result<string> {
 
+    export function piecePlacement(value?: string): Result<string> {
         if (value === undefined) {
             return new Failure("Value is undefined");
         }
 
         if (!ChessRegExp.piecePlacement.test(value)) {
             return new Failure("Invalid character in value");
-        }        
-        
+        }
+
         let whiteKing = RegExp("K", "g").exec(value);
-		let blackKing = RegExp("k", "g").exec(value);
-        
-		if (whiteKing?.length !== 1 || blackKing?.length !== 1) {
-			return new  Failure("Invalid number of kings in piece placement");
-		}
+        let blackKing = RegExp("k", "g").exec(value);
+
+        if (whiteKing?.length !== 1 || blackKing?.length !== 1) {
+            return new Failure("Invalid number of kings in piece placement");
+        }
 
         let rows = value.split("");
 
@@ -80,55 +83,61 @@ export namespace FenValidations {
         }
 
         for (const row in rows) {
-			let number_spaces = 0;
-			let number_pieces = 0;
+            let number_spaces = 0;
+            let number_pieces = 0;
 
-			row.split("").forEach((chr) => {
-				if (Rows.includes(chr)) {
-					number_spaces += parseInt(chr);
-				} else {
-					number_pieces + 1;
-				}
-			});
+            row.split("").forEach((chr) => {
+                if (Rows.includes(chr)) {
+                    number_spaces += parseInt(chr);
+                } else {
+                    number_pieces + 1;
+                }
+            });
 
-			if (number_spaces + number_pieces > 8) {
-				return new Failure(
-                    "Invalid number of spaces or pieces in a row"
-				);
-			}
-		}
-      
-        return new Success(value)
+            if (number_spaces + number_pieces > 8) {
+                return new Failure(
+                    "Invalid number of spaces or pieces in a row",
+                );
+            }
+        }
+
+        return new Success(value);
     }
 
     export function activeColor(color: string): Result<string> {
         return validateWithRegExp(
-            color, ChessRegExp.activeColor, "active color"
+            color,
+            ChessRegExp.activeColor,
+            "active color",
         );
     }
 
     export function availableCastlings(value: string): Result<string> {
         return validateWithRegExp(
-            value, ChessRegExp.AvailableCastling, "available castlings"
+            value,
+            ChessRegExp.AvailableCastling,
+            "available castlings",
         );
     }
 
     export function enPassant(value: string): Result<string> {
-        return validateWithRegExp(
-            value, ChessRegExp.enPassant, "en passant" 
-        )
+        return validateWithRegExp(value, ChessRegExp.enPassant, "en passant");
     }
 
     export function halfMove(value: string): Result<string> {
         return validateWithRegExp(
-            value, ChessRegExp.halfMove, "half move clock"
-        )
+            value,
+            ChessRegExp.halfMove,
+            "half move clock",
+        );
     }
 
     export function fullMove(value: string): Result<string> {
         return validateWithRegExp(
-            value, ChessRegExp.fullMove, "full move clock"
-        )
+            value,
+            ChessRegExp.fullMove,
+            "full move clock",
+        );
     }
 
     export function fen(value: string): Result<GameState> {
@@ -142,7 +151,7 @@ export namespace FenValidations {
             available_castlings,
             en_passant,
             half_move,
-            full_move
+            full_move,
         ] = value.split(" ");
 
         let validations: Array<Result<string>> = [
@@ -151,14 +160,14 @@ export namespace FenValidations {
             availableCastlings(available_castlings),
             enPassant(en_passant),
             halfMove(half_move),
-            fullMove(full_move)
+            fullMove(full_move),
         ];
 
         let errors: string[] = [];
 
         for (const validation of validations) {
             if (validation.IsFailure()) {
-                errors.push(String(validation.GetError()))
+                errors.push(String(validation.GetError()));
             }
         }
 
@@ -171,11 +180,13 @@ export namespace FenValidations {
             .join("")
             .split("")
             .map((chr) => {
-            if (Rows.includes(chr)) {
-                return "0".repeat((parseInt(chr)));
-            }
-            return chr;
-        }).join("").split("")
+                if (Rows.includes(chr)) {
+                    return "0".repeat(parseInt(chr));
+                }
+                return chr;
+            })
+            .join("")
+            .split("");
 
         let board: Board = createBoard(piece_placement_array);
 

@@ -1,0 +1,24 @@
+{
+  "name": "sucklesschess",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unixside/SucklessChess.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/unixside/SucklessChess/issues"
+  },
+  "homepage": "https://github.com/unixside/SucklessChess#readme",
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
