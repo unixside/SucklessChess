@@ -10,11 +10,10 @@ export type Row = (typeof Rows)[number];
 
 export type Color = "w" | "b";
 
-export type Board = Record<string, string | null>;
-
 export type Square = `${Column}${Row}`;
 export type EnPassant = Square | "-";
 export type HalfMove = Exclude<string, number>;
+export type Board = Record<Square, Piece | null>;
 
 export type Move = {
     from: Square;
@@ -36,7 +35,7 @@ export type MoveInfo = Move & {
 
 export type GameState = {
     board: Board;
-    activeColor: string;
+    activeColor: Color;
     availableCastlings: string;
     enPassant: string;
     halfMove: number;

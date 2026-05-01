@@ -1,6 +1,7 @@
 import { DefaultData } from "./constants";
-import { Board, GameState, MoveInfo, Pieces, Square } from "./types";
-import { FenValidations as validation, Result } from "./validations";
+import { Board, GameState, Move, Square } from "./types";
+import { Result } from "./result";
+import { FenValidations as validation } from "./validations";
 import { getLegalMoves } from "./moves";
 
 export class ChessGame {
@@ -33,26 +34,6 @@ export class ChessGame {
         return this.state?.board;
     }
 
-    public getActiveColor(): string | undefined {
-        return this.state?.activeColor;
-    }
-
-    public getAvailableCastlings(): string | undefined {
-        return this.state?.availableCastlings;
-    }
-
-    public getEnPassant(): string | undefined {
-        return this.state?.enPassant;
-    }
-
-    public getHalfMove(): number | undefined {
-        return this.state?.halfMove;
-    }
-
-    public getFullMove(): number | undefined {
-        return this.state?.fullMove;
-    }
-
     public gameOver(): boolean {
         if (this.state?.halfMove === 50) {
             this.result = "1/2-1/2";
@@ -66,11 +47,10 @@ export class ChessGame {
         return false;
     }
 
-    public getMoves(from?: Square): MoveInfo[] {
-        let moves: MoveInfo[] = [];
+    public getMoves(from?: Square): Move[] {
         if (this.state === undefined) {
             return [];
         }
-        return moves;
+        return getLegalMoves(this.state, from);
     }
 }

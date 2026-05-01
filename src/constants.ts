@@ -1,6 +1,6 @@
 export namespace DefaultData {
     export const colunms = "abcdefgh";
-    export const rows = "87654321";
+    export const rows = "12345678";
     export const pieces = "pnbrqkPNBRQK";
     export const num_squares = 64;
     export const white = "w";
@@ -16,14 +16,14 @@ export namespace Offsets {
             only_first: [0, 2],
             right_capture: [1, 1],
             left_capture: [-1, 1],
-            init_row: 2,
+            init_row: 1,
         },
         p: {
             always: [0, -1],
             only_first: [0, -2],
             right_capture: [1, -1],
             left_capture: [-1, -1],
-            init_row: 7,
+            init_row: 6,
         },
     };
 
@@ -218,7 +218,7 @@ export namespace ChessRegExp {
     export const piecePlacement = /^([\/]?[pnbrqkPNBRQK1-8]{1,8}[\/]?){8}$/;
     export const activeColor = /^[wb-]$/;
     export const AvailableCastling = /^([K]?[Q]?[k]?[Q]?)|-$/;
-    export const enPassant = /^[a-h][1-8]$/;
+    export const enPassant = /^([a-h][1-8]|-)$/;
     export const halfMove = /^([0-9]|[1-4][0-9]|50)$/;
     export const fullMove = /^[1-9]\d*$/;
 

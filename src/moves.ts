@@ -1,5 +1,17 @@
 import { ChessRegExp, DefaultData, Offsets } from "./constants";
-import { Board, Color, GameState, Move, Piece, Rows, Square } from "./types";
+import {
+    getEnemyColor,
+    getKingChar,
+    getRookChar,
+    isBlack,
+    isWhite,
+} from "./functions";
+import { Board, Color, GameState, Move, Piece, Square } from "./types";
+
+interface IPiece {
+    name: Piece | null;
+    square: Square;
+}
 
 const COLUMNS = DefaultData.colunms.split("");
 const ROWS = DefaultData.rows.split("");
@@ -53,61 +65,14 @@ function isEnemyPiece(piece1: Piece | null, piece2: Piece | null): boolean {
     return p1White !== p2White;
 }
 
-function getColor(piece: Piece): Color {
-    return piece === piece.toUpperCase() ? "w" : "b";
-}
-
-function getPawnStartRow(color: Color): number {
-    return color === "w" ? 1 : 6;
-}
-
-function isPawnPromotionRow(row: number, color: Color): boolean {
-    return color === "w" ? row === 7 : row === 0;
-}
-
-function toUpperCaseChar(char: string): string {
-    return char.toUpperCase();
-}
-
-function getSlidingMoves(
-    board: Board,
-    from: Square,
-    piece: Piece,
-    offsets: [number, number][],
-): Move[] {
-    const moves: Move[] = [];
-    const { col, row } = squareToCoords(from);
-
-    for (let i = 0; i < offsets.length; i += 7) {
-        for (let step = 0; step < 7; step++) {
-            const offset = offsets[i + step];
-            if (!offset) break;
-
-            const destCol = col + offset[0];
-            const destRow = row + offset[1];
-            const destSquare = coordsToSquare(destCol, destRow);
-
-            if (!destSquare) break;
-
-            const targetPiece = getPieceAt(board, destSquare);
-            if (targetPiece === null) {
-                moves.push({ from, to: destSquare });
-            } else {
-                if (isEnemyPiece(piece, targetPiece)) {
-                    moves.push({ from, to: destSquare });
-                }
-                break;
-            }
-        }
-    }
-
-    return moves;
+function validMove(piece: Piece, to: Square, board: Board): boolean {
+    let another = getPieceAt(board, to);
+    return isEnemyPiece(piece, another) || another === null;
 }
 
 export function getPseudoMoves(state: GameState, from: Square): Move[] {
     const moves: Move[] = [];
     const board = state.board;
-    const color = state.activeColor as Color;
     const enPassant =
         state.enPassant !== "-" ? (state.enPassant as Square) : null;
 
@@ -151,45 +116,49 @@ export function getPseudoMoves(state: GameState, from: Square): Move[] {
         if (enPassant && !moves.includes({ from: from, to: enPassant })) {
             moves.push({ from: from, to: enPassant });
         }
-        return moves;
     }
 
     if (ChessRegExp.KN.test(piece)) {
-        let offset = Offsets.KN[piece as keyof typeof Offsets.KN];
+        let offset = Offsets.KN[piece.toLowerCase() as keyof typeof Offsets.KN];
 
         Object.values(offset)
             .map((o) => sumOffset(from, o))
             .filter((sq) => sq !== undefined)
+            .filter((sq) => validMove(piece, sq, board))
             .forEach((sq) => moves.push({ from: from, to: sq }));
-
-        return moves;
     }
 
     if (ChessRegExp.BRQ.test(piece)) {
-        let offset = Offsets.BRQ[piece as keyof typeof Offsets.BRQ];
+        let offset =
+            Offsets.BRQ[piece.toLowerCase() as keyof typeof Offsets.BRQ];
 
-        let directions = Object.values(offset).map((dir) =>
-            dir.map((o) => sumOffset(from, o)).filter((sq) => sq !== undefined),
-        );
+        Object.values(offset)
+            .map((dir) =>
+                dir
+                    .map((o) => sumOffset(from, o))
+                    .filter((sq) => sq !== undefined),
+            )
+            .forEach((dir) => {
+                let index = dir.findIndex(
+                    (sq) => getPieceAt(board, sq) !== null,
+                );
 
-        for (const dir of directions) {
-            for (let i = 0; i < dir.length; i++) {
-                let another = getPieceAt(board, dir[i]);
-                if (another === null) {
-                    moves.push({ from: from, to: dir[i] });
-                }
-
-                if (isEnemyPiece(piece, another)) {
-                    moves.push({ from: from, to: dir[i] });
-                    break;
+                if (index === -1) {
+                    moves.concat(
+                        dir.map((sq) => ({ from: from, to: sq as Square })),
+                    );
                 } else {
-                    break;
+                    let another = getPieceAt(board, dir[index]);
+                    if (isEnemyPiece(piece, another)) {
+                        index += 1;
+                    }
+                    dir.slice(0, index).map((sq) => ({
+                        from: from,
+                        to: sq as Square,
+                    }));
                 }
-            }
-            return moves;
-        }
+            });
     }
-
     return moves;
 }
 
@@ -213,32 +182,53 @@ function applyMove(board: Board, move: Move): Board {
     return newBoard;
 }
 
+function getPieces(board: Board): IPiece[] {
+    return Object.entries(board)
+        .map(([square, piece]) => ({
+            name: piece,
+            square: square,
+        }))
+        .filter((piece) => piece.name !== null);
+}
+
+function getWhitePieces(board: Board): IPiece[] {
+    return getPieces(board).filter((piece) => isWhite(piece?.name as Piece));
+}
+
+function getBlackPieces(board: Board): IPiece[] {
+    return getPieces(board).filter((piece) => isBlack(piece?.name as Piece));
+}
+
+function getEnemyPieces(board: Board, color: Color): IPiece[] {
+    if (color === DefaultData.white) {
+        return getBlackPieces(board);
+    }
+    return getWhitePieces(board);
+}
+
 export function isKingInCheck(state: GameState, color: Color): boolean {
     const board = state.board;
     const kingSquare = findKing(board, color);
 
     if (!kingSquare) return false;
 
-    const enemyColor = color === "w" ? "b" : "w";
+    const enemyColor = getEnemyColor(color);
+    const enemyPieces: IPiece[] = getEnemyPieces(board, color);
 
-    for (const square in board) {
-        const piece = board[square];
-        if (piece && isPieceOfColor(piece, enemyColor)) {
-            const pseudoState: GameState = {
-                ...state,
-                board,
-                activeColor: enemyColor,
-            };
-            const moves = getPseudoMoves(pseudoState, square as Square);
-            for (const move of moves) {
-                if (move.to === kingSquare) {
-                    return true;
-                }
-            }
-        }
-    }
+    if (enemyPieces.length === 0) return false;
 
-    return false;
+    const pseudoState: GameState = {
+        ...state,
+        board,
+        activeColor: enemyColor,
+    };
+
+    const enemyMoves = enemyPieces
+        .map((piece) => getPseudoMoves(pseudoState, piece.square))
+        .flat()
+        .map((move) => move.to);
+
+    return enemyMoves.includes(kingSquare);
 }
 
 export function getLegalMoves(state: GameState, from?: Square): Move[] {
@@ -254,7 +244,7 @@ export function getLegalMoves(state: GameState, from?: Square): Move[] {
             const newState: GameState = {
                 ...state,
                 board: newBoard,
-                activeColor: color === "w" ? "b" : "w",
+                activeColor: getEnemyColor(color),
             };
 
             if (!isKingInCheck(newState, color)) {
@@ -283,14 +273,14 @@ export function getCastleMoves(state: GameState): Move[] {
     const board = state.board;
     const color = state.activeColor as Color;
     const castlings = state.availableCastlings;
-    const enemyColor = color === "w" ? "b" : "w";
+    const enemyColor = getEnemyColor(color);
 
     if (isKingInCheck(state, color)) {
         return moves;
     }
 
-    const kingPiece = color === "w" ? "K" : "k";
-    const rookPiece = color === "w" ? "R" : "r";
+    const kingPiece = getKingChar(color);
+    const rookPiece = getRookChar(color);
 
     let kingSquare: Square | null = null;
     for (const square in board) {
