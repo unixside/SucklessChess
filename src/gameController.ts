@@ -1,56 +1,79 @@
+import { Board } from "./board";
 import { DefaultData } from "./constants";
-import { Board, GameState, Move, Square } from "./types";
-import { Result } from "./result";
-import { FenValidations as validation } from "./validations";
-import { getLegalMoves } from "./moves";
+import { GameStateImpl, IGameState } from "./gameState";
+import {
+	PseudoMove,
+	applyMoveCommand,
+	MoveHistory,
+	ExecutedMove,
+} from "./move";
+import { FenValidations } from "./validations";
 
 export class ChessGame {
-    private white?: string;
-    private black?: string;
+	private white?: string;
+	private black?: string;
 
-    private state?: GameState;
-    private result?: string;
+	private state: GameStateImpl;
+	private moveHistory: MoveHistory;
 
-    private isInCheck?: boolean;
-    private check_mate?: boolean;
-    private winner?: string;
+	constructor(fen?: string) {
+		const fenString = fen || DefaultData.fen;
+		const result = FenValidations.fen(fenString);
 
-    constructor(fen: string = DefaultData.fen) {
-        let result: Result<GameState> = validation.fen(fen);
+		if (result.IsFailure()) {
+			throw new Error(result.GetError()?.join("\n"));
+		}
 
-        if (result.IsFailure()) {
-            let errors = ["Failed to create a chess game\n", result.GetError()];
-            throw new Error(errors.join(""));
-        }
+		const gameState = result.GetValue() as IGameState;
+		this.state = new GameStateImpl(gameState);
+		this.moveHistory = new MoveHistory();
+	}
 
-        this.state = result.GetValue();
-    }
+	public makeMove(move: PseudoMove): boolean {
+		const result = applyMoveCommand(this.state, move);
+		if (!result) return false;
 
-    public getResult(): string | undefined {
-        return this.result;
-    }
+		const { newState, command } = result;
 
-    public getBoard(): Board | undefined {
-        return this.state?.board;
-    }
+		const executedMove: ExecutedMove = {
+			command,
+			stateBefore: this.cloneState(),
+		};
 
-    public gameOver(): boolean {
-        if (this.state?.halfMove === 50) {
-            this.result = "1/2-1/2";
-            return true;
-        }
+		this.state = new GameStateImpl(newState);
+		this.moveHistory.add(executedMove);
 
-        if (this.check_mate) {
-            return true;
-        }
+		return true;
+	}
 
-        return false;
-    }
+	public undo(): boolean {
+		const previousState = this.moveHistory.undo(this.state);
+		if (!previousState) return false;
 
-    public getMoves(from?: Square): Move[] {
-        if (this.state === undefined) {
-            return [];
-        }
-        return getLegalMoves(this.state, from);
-    }
+		this.state = new GameStateImpl(previousState);
+		return true;
+	}
+
+	private cloneState(): IGameState {
+		return {
+			board: this.state.board.cloneBoard(),
+			activeColor: this.state.activeColor,
+			availableCastlings: { ...this.state.availableCastlings },
+			enPassant: this.state.enPassant,
+			halfMove: this.state.halfMove,
+			fullMove: this.state.fullMove,
+		};
+	}
+
+	public getBoard(): Board {
+		return this.state.board;
+	}
+
+	public getState(): GameStateImpl {
+		return this.state;
+	}
+
+	public printBoard() {
+		console.log(this.state.board.toPiecePlacement());
+	}
 }

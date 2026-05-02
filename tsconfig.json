@@ -8,13 +8,12 @@
         "forceConsistentCasingInFileNames": true,
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
-        "declaration": true,
-        "declarationMap": true,
-        "sourceMap": true,
-        "rootDir": "./src",
-        "outDir": "./dist",
-        //"ignoreDeprecations": "6.0"
+        "declaration": false,
+        "declarationMap": false,
+        "sourceMap": false,
+        "rootDir": ".",
+        "outDir": "./dist"
     },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "dist"],
+    "include": ["index.ts", "src/**/*"],
+    "exclude": ["node_modules", "dist"]
 }

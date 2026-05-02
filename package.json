@@ -2,8 +2,12 @@
   "name": "sucklesschess",
   "version": "1.0.0",
   "description": "",
-  "main": "script.js",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "bun build index.ts --outdir ./dist --target node --outfile index.js",
+    "start": "bun run dist/index.js",
+    "dev": "bun run index.ts",
+    "server": "bun run server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -13,12 +17,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/unixside/SucklessChess/issues"
   },
   "homepage": "https://github.com/unixside/SucklessChess#readme",
   "devDependencies": {
+    "@types/bun": "^1.3.13",
     "typescript": "^6.0.3"
   }
 }

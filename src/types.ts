@@ -1,4 +1,5 @@
 import { DefaultData } from "./constants";
+import { Board } from "./board";
 
 export const Pieces = [...DefaultData.pieces.split("")] as const;
 export const Columns = [...DefaultData.colunms.split("")] as const;
@@ -13,31 +14,21 @@ export type Color = "w" | "b";
 export type Square = `${Column}${Row}`;
 export type EnPassant = Square | "-";
 export type HalfMove = Exclude<string, number>;
-export type Board = Record<Square, Piece | null>;
 
-export type Move = {
-    from: Square;
-    to: Square;
-    promotion?: Piece;
-};
+export type Castlings = { K: boolean; Q: boolean; q: boolean; k: boolean };
 
-export type MoveType =
-    | "normal"
-    | "capture"
-    | "enPassant"
-    | "castle"
-    | "promotion";
+export interface GameState {
+	board: Board;
+	activeColor: Color;
+	availableCastlings: Castlings;
+	enPassant: EnPassant;
+	halfMove: number;
+	fullMove: number;
+}
 
-export type MoveInfo = Move & {
-    type: MoveType;
-    notation: string;
-};
-
-export type GameState = {
-    board: Board;
-    activeColor: Color;
-    availableCastlings: string;
-    enPassant: string;
-    halfMove: number;
-    fullMove: number;
-};
+export interface GameStatus {
+	isCheck: boolean;
+	isCheckmate: boolean;
+	isStalemate: boolean;
+	isRepetition: boolean;
+}
