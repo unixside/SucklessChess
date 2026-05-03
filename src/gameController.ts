@@ -1,12 +1,17 @@
 import { Board } from "./board";
-import { DefaultData } from "./constants";
+import { ChessRegExp, DefaultData } from "./constants";
+import { getPieceColor } from "./functions";
 import { GameStateImpl, IGameState } from "./gameState";
 import {
 	PseudoMove,
 	applyMoveCommand,
 	MoveHistory,
 	ExecutedMove,
+	getLegalMoves,
+	getCastleMoves,
+	get960CastlingSetups,
 } from "./move";
+import { Square } from "./types";
 import { FenValidations } from "./validations";
 
 export class ChessGame {
@@ -73,7 +78,63 @@ export class ChessGame {
 		return this.state;
 	}
 
+	public getMoves(from: Square): PseudoMove[] {
+		const piece = this.getBoard().getPieceAt(from);
+
+		if (piece === null || piece === undefined) {
+			return [];
+		}
+
+		if (getPieceColor(piece) !== this.state.activeColor) {
+			return [];
+		}
+
+		const moves = getLegalMoves(this.state, from);
+
+		if (ChessRegExp.pieces.king.test(piece)) {
+			const castles = getCastleMoves(this.state);
+			for (const castle of castles) {
+				if (castle.from === from) {
+					const exists = moves.some(m => m.from === castle.from && m.to === castle.to);
+					if (!exists) {
+						moves.push(castle);
+					}
+				}
+			}
+
+			const setups = get960CastlingSetups(this.state, this.state.activeColor);
+			for (const setup of setups) {
+				if (setup.kingFrom === from) {
+					moves.push({
+						from: setup.kingFrom,
+						to: setup.kingTo,
+					});
+				}
+			}
+		}
+
+		return moves;
+	}
+
 	public printBoard() {
 		console.log(this.state.board.toPiecePlacement());
+	}
+
+	public toFen(): string {
+		const board = this.state.board.toPiecePlacement() || "";
+		const activeColor = this.state.activeColor;
+		
+		let castlings = "";
+		if (this.state.availableCastlings.K) castlings += "K";
+		if (this.state.availableCastlings.Q) castlings += "Q";
+		if (this.state.availableCastlings.k) castlings += "k";
+		if (this.state.availableCastlings.q) castlings += "q";
+		if (castlings === "") castlings = "-";
+
+		const enPassant = this.state.enPassant;
+		const halfMove = this.state.halfMove;
+		const fullMove = this.state.fullMove;
+
+		return `${board} ${activeColor} ${castlings} ${enPassant} ${halfMove} ${fullMove}`;
 	}
 }

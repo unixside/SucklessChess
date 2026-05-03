@@ -18,7 +18,7 @@ serve({
 			});
 		}
 
-		if (pathname === "/script.js") {
+		if (pathname === "/script.js" || pathname === "./script.js") {
 			return new Response(Bun.file("./dist/index.js"), {
 				headers: { "Content-Type": "application/javascript" },
 			});

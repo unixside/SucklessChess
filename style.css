@@ -61,15 +61,60 @@ header {
 }
 
 .square-w {
+	position: relative;
 	box-sizing: border-box;
 	display: flex;
 	background-color: #faf4ed;
+	justify-content: center;
+	align-items: center;
 }
 
 .square-b {
+	position: relative;
 	box-sizing: border-box;
 	display: flex;
 	background-color: #575279;
+	justify-content: center;
+	align-items: center;
+}
+
+.square-w.circle::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 30%;
+	aspect-ratio: 1 / 1;
+	padding-bottom: 30%;
+	border-radius: 50%;
+	background: rgba(52, 152, 219, 0.8);
+	pointer-events: none;
+	z-index: 0;
+}
+
+.square-b.circle::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 30%;
+	aspect-ratio: 1 / 1;
+	border-radius: 50%;
+	background: rgba(52, 152, 219, 0.8);
+	pointer-events: none;
+	z-index: 0;
+}
+
+.square-w > * {
+	position: relative;
+	z-index: 1;
+}
+
+.square-b > * {
+	position: relative;
+	z-index: 1;
 }
 
 .piece {
@@ -86,4 +131,11 @@ header {
 	display: flex;
 	justify-content: center;
 	align-items: center;
+}
+
+.circle {
+	width: 30%;
+	height: 30%;
+	background-color: #9ccfd8;
+	border-radius: 50%;
 }

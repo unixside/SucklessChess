@@ -164,12 +164,22 @@ export class MoveFactory {
 				(color === "b" && move.to[1] === "1");
 
 			if (isPromotion) {
-				return this.createPromotionMove(move, board, piece, move.promotion);
+				return this.createPromotionMove(
+					move,
+					board,
+					piece,
+					move.promotion,
+				);
 			}
 		}
 
 		if (targetPiece !== null) {
-			return new CaptureMove(piece, move.from, move.to, targetPiece as Piece);
+			return new CaptureMove(
+				piece,
+				move.from,
+				move.to,
+				targetPiece as Piece,
+			);
 		}
 
 		return new NormalMove(piece, move.from, move.to);
@@ -181,30 +191,26 @@ export class MoveFactory {
 		king: Piece,
 		color: Color,
 	): CastlingMove | null {
-		const rookSquare =
-			move.to[0] > move.from[0]
-				? ("h" + move.from[1])
-				: ("a" + move.from[1]);
-		const rookTo =
-			move.to[0] > move.from[0]
-				? ("f" + move.from[1])
-				: ("d" + move.from[1]);
-
-		const rook = board.getPieceAt(rookSquare as Square) as Piece;
-
-		if (!ChessRegExp.pieces.rook.test(rook)) return null;
-
-		const kingTo = move.to;
 		const kingFrom = move.from;
+		const kingTo = move.to;
+		const direction = kingTo[0] > kingFrom[0] ? 1 : -1;
 
-		return new CastlingMove(
-			king,
-			kingFrom,
-			kingTo,
-			rook,
-			rookSquare as Square,
-			rookTo as Square,
-		);
+		const row = kingFrom[1];
+		const rookFrom: Square =
+			direction === 1
+				? ((kingTo[0] + row) as Square)
+				: ((kingFrom[0] + row) as Square);
+		const rookTo: Square =
+			direction === 1
+				? ((String.fromCharCode(kingTo[0].charCodeAt(0) - 1) +
+						row) as Square)
+				: ((String.fromCharCode(kingTo[0].charCodeAt(0) + 1) +
+						row) as Square);
+
+		const rook = board.getPieceAt(rookFrom) as Piece;
+		if (!rook || !ChessRegExp.pieces.rook.test(rook)) return null;
+
+		return new CastlingMove(king, kingFrom, kingTo, rook, rookFrom, rookTo);
 	}
 
 	private static createEnPassantMove(
@@ -215,7 +221,8 @@ export class MoveFactory {
 	): EnPassantMove | null {
 		const capturedPawnRow =
 			color === "w" ? parseInt(move.to[1]) - 1 : parseInt(move.to[1]) + 1;
-		const capturedPawnSquare = (move.to[0] + capturedPawnRow.toString()) as Square;
+		const capturedPawnSquare = (move.to[0] +
+			capturedPawnRow.toString()) as Square;
 		const capturedPawn = board.getPieceAt(capturedPawnSquare) as Piece;
 
 		if (!ChessRegExp.pieces.pawn.test(capturedPawn)) return null;
@@ -238,7 +245,9 @@ export class MoveFactory {
 		const color = getPieceColor(pawn);
 		const promotedPiece: Piece = promotionChar
 			? (promotionChar as Piece)
-			: (color === "w" ? "Q" : "q");
+			: color === "w"
+				? "Q"
+				: "q";
 
 		return new PromotionMove(
 			move.from,
@@ -249,7 +258,10 @@ export class MoveFactory {
 		);
 	}
 
-	private static squareToCoords(square: Square): { col: number; row: number } {
+	private static squareToCoords(square: Square): {
+		col: number;
+		row: number;
+	} {
 		const COLUMNS = "abcdefgh";
 		const ROWS = "12345678";
 		return {

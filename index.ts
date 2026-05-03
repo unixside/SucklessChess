@@ -3,6 +3,6 @@ import { ChessGame } from "./src/gameController";
 
 const root = document.getElementById("root");
 const game = new ChessGame();
-const board = BoardView(game.getBoard());
+const board = new BoardView(game);
 
-root?.appendChild(board);
+root?.appendChild(board.getView());

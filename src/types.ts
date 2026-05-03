@@ -17,6 +17,14 @@ export type HalfMove = Exclude<string, number>;
 
 export type Castlings = { K: boolean; Q: boolean; q: boolean; k: boolean };
 
+export interface CastlingSetup {
+	kingFrom: Square;
+	kingTo: Square;
+	rookFrom: Square;
+	rookTo: Square;
+	direction: 1 | -1;
+}
+
 export interface GameState {
 	board: Board;
 	activeColor: Color;
@@ -24,11 +32,4 @@ export interface GameState {
 	enPassant: EnPassant;
 	halfMove: number;
 	fullMove: number;
-}
-
-export interface GameStatus {
-	isCheck: boolean;
-	isCheckmate: boolean;
-	isStalemate: boolean;
-	isRepetition: boolean;
 }

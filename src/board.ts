@@ -2,8 +2,10 @@ import { ChessRegExp } from "./constants";
 import { Pieces, Piece, Square } from "./types";
 import { FenValidations as validations } from "./validations";
 
+export type RawBoard = Record<Square, Piece | null>;
+
 // prettier-ignore
-export const EmptyBoard: Record<Square, Piece | null> = {
+export const EmptyBoard: RawBoard = {
     a8: null, b8: null, c8: null, d8: null, e8: null, f8: null, g8: null, h8: null,
     a7: null, b7: null, c7: null, d7: null, e7: null, f7: null, g7: null, h7: null,
     a6: null, b6: null, c6: null, d6: null, e6: null, f6: null, g6: null, h6: null,
@@ -104,10 +106,14 @@ export class Board {
 
 	public getPieceAt(from: Square): Piece | null | undefined {
 		if (!ChessRegExp.square.test(from)) {
-			console.error("Invalid square name");
+			//console.error("Invalid square name");
 			return undefined;
 		}
 		return this.squares[from];
+	}
+
+	public raw(): RawBoard {
+		return JSON.parse(JSON.stringify(this.squares));
 	}
 
 	public cloneBoard(): Board {
