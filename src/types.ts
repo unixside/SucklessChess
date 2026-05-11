@@ -15,6 +15,12 @@ export type Square = `${Column}${Row}`;
 export type EnPassant = Square | "-";
 export type HalfMove = Exclude<string, number>;
 
+export interface PseudoMove {
+	from: Square;
+	to: Square;
+	promotion?: string;
+}
+
 export type Castlings = { K: boolean; Q: boolean; q: boolean; k: boolean };
 
 export interface CastlingSetup {
@@ -32,4 +38,23 @@ export interface GameState {
 	enPassant: EnPassant;
 	halfMove: number;
 	fullMove: number;
+}
+
+export interface SpecialEffectPiece {
+	from: Square;
+	to: Square;
+	piece: Piece;
+}
+
+export type SpecialEffectType = "promotion" | "castling" | "enpassant";
+
+export interface SpecialEffect {
+	type: SpecialEffectType;
+	pieces: SpecialEffectPiece[];
+}
+
+export interface MoveResult {
+	success: boolean;
+	move: PseudoMove;
+	specialEffect?: SpecialEffect;
 }

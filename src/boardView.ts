@@ -1,8 +1,8 @@
-import { Board, EmptyBoard } from "./board";
+import { EmptyBoard } from "./board";
 import { ViewData } from "./constants";
 import { getSquareColor } from "./functions";
 import { ChessGame } from "./gameController";
-import { Piece, Pieces, Square } from "./types";
+import { MoveResult } from "./types";
 
 const pieces: Record<string, string> = {
 	P: "./pieces/white-pawn.png",
@@ -32,6 +32,7 @@ function createImage(src: string, id: string): HTMLImageElement {
 	const image = new Image();
 	image.id = id;
 	image.src = src;
+    image.className = "piece";
 	image.style.width = "100%";
 	image.style.height = "100%";
 	image.style.objectFit = "cover";
@@ -89,25 +90,101 @@ export class BoardView {
 		});
 	}
 
-	private dropHandle = (event: DragEvent): void => {
-		event.preventDefault();
-		const dropedElementId = event.dataTransfer?.getData("text/plain");
-		const target = event.target as HTMLDivElement;
+private dropHandle = (event: DragEvent): void => {
+	event.preventDefault();
+	const dropedElementId = event.dataTransfer?.getData("text/plain");
+	let target = event.target as HTMLDivElement;
+
+    if (target.className === "piece") {
+        console.log("Droped on a piece");
+        const square = target.id.slice(-2);
+        target = document.getElementById(square) as HTMLDivElement;
+    }
 
 		if (dropedElementId) {
 			const [piece, origin] = dropedElementId.split("-");
 			const dropedElement = document.getElementById(dropedElementId);
+
 			if (dropedElement) {
-				dropedElement.id = `${piece}-${target.id}`;
-				target.appendChild(dropedElement);
-				this.game.makeMove({
-					from: origin,
-					to: target.id,
+				const moveResult = this.game.makeMove({
+					from: origin as any,
+					to: target.id as any,
 				});
+
+				if (moveResult.success) {
+					dropedElement.id = `${piece}-${target.id}`;
+
+					if (target.childElementCount && target.firstElementChild?.className === "piece") {
+						const child = target.firstChild;
+						if (child) target.replaceChild(dropedElement, child);
+					} else {
+						target.appendChild(dropedElement);
+					}
+
+					if (moveResult.specialEffect) {
+						this.handleSpecialEffect(moveResult);
+					}
+				}
 			}
 		}
 		this.cleanSquares();
 	};
+
+	private handleSpecialEffect(result: MoveResult): void {
+		if (!result.specialEffect) return;
+
+		const effect = result.specialEffect;
+
+		switch (effect.type) {
+			case "castling":
+				this.handleCastling(effect.pieces, result.move);
+				break;
+			case "promotion":
+				this.handlePromotion(effect.pieces);
+				break;
+			case "enpassant":
+				this.handleEnPassant(effect.pieces);
+				break;
+		}
+	}
+
+	private handleCastling(pieces: { from: string; to: string; piece: string }[], move: { from: string; to: string }): void {
+		for (const p of pieces) {
+			if (p.from === move.from) continue;
+
+			const rookElement = document.getElementById(`${p.piece}-${p.from}`);
+			if (rookElement) {
+				rookElement.id = `${p.piece}-${p.to}`;
+				const targetSquare = this.squares.find((sq) => sq.id === p.to);
+				if (targetSquare) {
+					targetSquare.appendChild(rookElement);
+				}
+			}
+		}
+	}
+
+	private handlePromotion(pieces: { from: string; to: string; piece: string }[]): void {
+		for (const p of pieces) {
+			const element = document.getElementById(`${p.from[0]}z-${p.to}`);
+			if (element) {
+				element.id = `${p.piece}-${p.to}`;
+				const targetSquare = this.squares.find((sq) => sq.id === p.to);
+				if (targetSquare && targetSquare.firstChild) {
+					targetSquare.replaceChildren(targetSquare.firstChild);
+				}
+			}
+		}
+	}
+
+	private handleEnPassant(pieces: { from: string; to: string; piece: string }[]): void {
+		const capturedPawn = pieces.find((p) => p.from !== p.to);
+		if (capturedPawn) {
+			const capturedElement = document.getElementById(`${capturedPawn.piece}-${capturedPawn.from}`);
+			if (capturedElement && capturedElement.parentElement) {
+				capturedElement.parentElement.removeChild(capturedElement);
+			}
+		}
+	}
 
 	private cleanSquares = () => {
 		this.squares

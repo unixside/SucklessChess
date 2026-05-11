@@ -1,6 +1,6 @@
 import { Board } from "./board";
-import { ChessRegExp, Offsets } from "./constants";
-import { getEnemyColor, getKingChar, getPieceColor } from "./functions";
+import { ChessRegExp } from "./constants";
+import { getPieceColor } from "./functions";
 import { PseudoMove } from "./move";
 import { Color, Piece, Square } from "./types";
 
@@ -76,6 +76,14 @@ export class EnPassantMove implements MoveCommand {
 		board.setSquare(this.to, null);
 		board.setSquare(this.capturedPawnSquare, this.capturedPawn);
 	}
+
+	public getCapturedPawnSquare(): Square {
+		return this.capturedPawnSquare;
+	}
+
+	public getTo(): Square {
+		return this.to;
+	}
 }
 
 export class CastlingMove implements MoveCommand {
@@ -100,6 +108,30 @@ export class CastlingMove implements MoveCommand {
 		board.setSquare(this.kingTo, null);
 		board.setSquare(this.rookFrom, this.rook);
 		board.setSquare(this.rookTo, null);
+	}
+
+	public getRookFrom(): Square {
+		return this.rookFrom;
+	}
+
+	public getRookTo(): Square {
+		return this.rookTo;
+	}
+
+	public getKingFrom(): Square {
+		return this.kingFrom;
+	}
+
+	public getKingTo(): Square {
+		return this.kingTo;
+	}
+
+	public getKingPiece(): Piece {
+		return this.king;
+	}
+
+	public getRookPiece(): Piece {
+		return this.rook;
 	}
 }
 
@@ -128,6 +160,14 @@ export class PromotionMove implements MoveCommand {
 		} else {
 			board.setSquare(this.to, null);
 		}
+	}
+
+	public getPromotedPiece(): Piece {
+		return this.promotedPiece;
+	}
+
+	public getTo(): Square {
+		return this.to;
 	}
 }
 
@@ -185,6 +225,34 @@ export class MoveFactory {
 		return new NormalMove(piece, move.from, move.to);
 	}
 
+	private static findRookFromKingDestination(
+		board: Board,
+		kingTo: Square,
+		direction: 1 | -1,
+	): Square | null {
+		const kingRow = kingTo[1];
+		const destCol = kingTo.charCodeAt(0);
+
+		if (direction === 1) {
+			for (let col = destCol + 1; col <= 'h'.charCodeAt(0); col++) {
+				const sq = (String.fromCharCode(col) + kingRow) as Square;
+				const piece = board.getPieceAt(sq);
+				if (piece && ChessRegExp.pieces.rook.test(piece)) {
+					return sq;
+				}
+			}
+		} else {
+			for (let col = destCol - 1; col >= 'a'.charCodeAt(0); col--) {
+				const sq = (String.fromCharCode(col) + kingRow) as Square;
+				const piece = board.getPieceAt(sq);
+				if (piece && ChessRegExp.pieces.rook.test(piece)) {
+					return sq;
+				}
+			}
+		}
+		return null;
+	}
+
 	private static createCastlingMove(
 		move: PseudoMove,
 		board: Board,
@@ -195,21 +263,16 @@ export class MoveFactory {
 		const kingTo = move.to;
 		const direction = kingTo[0] > kingFrom[0] ? 1 : -1;
 
+		const rookFrom = this.findRookFromKingDestination(board, kingTo, direction);
+		if (!rookFrom) return null;
+
 		const row = kingFrom[1];
-		const rookFrom: Square =
-			direction === 1
-				? ((kingTo[0] + row) as Square)
-				: ((kingFrom[0] + row) as Square);
 		const rookTo: Square =
 			direction === 1
-				? ((String.fromCharCode(kingTo[0].charCodeAt(0) - 1) +
-						row) as Square)
-				: ((String.fromCharCode(kingTo[0].charCodeAt(0) + 1) +
-						row) as Square);
+				? ((String.fromCharCode(kingTo.charCodeAt(0) - 1) + row) as Square)
+				: ((String.fromCharCode(kingTo.charCodeAt(0) + 1) + row) as Square);
 
 		const rook = board.getPieceAt(rookFrom) as Piece;
-		if (!rook || !ChessRegExp.pieces.rook.test(rook)) return null;
-
 		return new CastlingMove(king, kingFrom, kingTo, rook, rookFrom, rookTo);
 	}
 

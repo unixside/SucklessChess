@@ -238,8 +238,8 @@ export namespace ChessRegExp {
 
 	// Chess 960 castling (king moves 2+ squares)
 	export const castling = /^[a-h][1-8][a-h][1-8]$/;
-	export const fromCastling = /^[b-g][1-8]$/;
-	export const toCastling = /^[cdfg][18]$/;
+	export const fromCastling = /^[b-g][18]$/;
+	export const toCastling = /^[cg][18]$/;
 
 	// Standard castling notation (K=king-side, Q= queen-side)
 	export const castlingStandard = /^[KQ]?[kq]?$/;

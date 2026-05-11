@@ -1,8 +1,8 @@
 import { Board, RawBoard } from "./board";
 import { DefaultData } from "./constants";
 import { getEnemyColor, getKingChar, getPieceColor } from "./functions";
-import { Color, Castlings, CastlingSetup, Piece, Square } from "./types";
-import { getPieces, getEnemyPieces, getPseudoMoves, isKingInCheck, squareToCoords } from "./move";
+import { Color, Castlings, CastlingSetup, Square } from "./types";
+import { getEnemyPieces, getPseudoMoves, isKingInCheck, squareToCoords } from "./move";
 
 interface GameStatus {
 	isCheck: boolean;
@@ -86,7 +86,6 @@ export class GameStateImpl implements IGameState {
 			const setup = this.createCastlingSetup(
 				kingSquare,
 				rookSquare,
-				color,
 			);
 			if (setup && this.isValidCastling(board, setup, color)) {
 				validSetups.push(setup);
@@ -119,9 +118,9 @@ export class GameStateImpl implements IGameState {
 
 	private hasPieceMoved(color: Color): boolean {
 		const rooks = this.findRookSquares(this.board.raw(), color);
-		const castlings = color === "w"
-			? this.availableCastlings
-			: this.availableCastlings;
+		// const castlings = color === "w"
+		// 	? this.availableCastlings
+		// 	: this.availableCastlings;
 
 		if (color === "w") {
 			if (rooks.some(r => r === "h1") && !this.availableCastlings.K) return true;
@@ -147,7 +146,7 @@ export class GameStateImpl implements IGameState {
 	private createCastlingSetup(
 		kingFrom: Square,
 		rookFrom: Square,
-		color: Color,
+		// color: Color,
 	): CastlingSetup | null {
 		const kCoords = squareToCoords(kingFrom);
 		const rCoords = squareToCoords(rookFrom);

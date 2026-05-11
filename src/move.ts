@@ -360,6 +360,33 @@ export function applyMoveCommand(
 	return { newState, newBoard, command };
 }
 
+function isStandardCastlingPosition(kingFrom: Square, rookFrom: Square): boolean {
+	const standardPositions = [
+		{ king: "e1", rooks: ["a1", "h1"] },
+		{ king: "e8", rooks: ["a8", "h8"] },
+	];
+
+	for (const pos of standardPositions) {
+		if (pos.king === kingFrom && pos.rooks.includes(rookFrom)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function calculateCastlingDestination(kingFrom: Square, rookFrom: Square): Square {
+	const isStandard = isStandardCastlingPosition(kingFrom, rookFrom);
+
+	if (isStandard) {
+		const row = kingFrom[1];
+		return rookFrom[0] > kingFrom[0] ? ("g" + row) : ("c" + row);
+	}
+
+	const rookCol = rookFrom.charCodeAt(0);
+	const newCol = String.fromCharCode(rookCol + 1);
+	return (newCol + kingFrom[1]) as Square;
+}
+
 function cretateCastlingMove(
 	from: Square,
 	to: Square,
@@ -376,8 +403,8 @@ function cretateCastlingMove(
 		return undefined;
 	}
 
-	const [kingCol, kingRow] = Object.values(squareToCoords(from));
-	const rookCol = squareToCoords(to).col;
+	let [kingCol, kingRow] = Object.values(squareToCoords(from));
+	let rookCol = squareToCoords(to).col;
 	const kingColor = getPieceColor(king as Piece);
 
 	let flag = true;
@@ -390,19 +417,19 @@ function cretateCastlingMove(
 		.flat()
 		.map((move) => move.to);
 
-	const [pos_min, pos_max] =
-		kingCol < rookCol ? [kingCol, rookCol] : [rookCol, kingCol];
-
-	for (let i = pos_min; i < pos_max; ++i) {
-		let square = coordsToSquare(i, kingRow as number) as Square;
+	let [min, max] = kingCol < rookCol ? [kingCol, rookCol] : [rookCol, kingCol];
+    
+	for (let col = min + 1; col < max; col++) {
+		let square = coordsToSquare(col, kingRow as number) as Square;
 		let piece = board.getPieceAt(square);
 		flag = flag && piece === null;
 		flag = flag && !enemyMoves.includes(square);
 	}
 
 	if (!flag) return undefined;
-
-	return { from: from, to: to };
+	
+	const kingTo = calculateCastlingDestination(from, to);
+	return { from: from, to: kingTo };
 }
 
 export function getCastleMoves(state: GameState): PseudoMove[] {
@@ -503,8 +530,8 @@ function create960CastlingSetup(
 	if (kCoords.row !== rCoords.row) return null;
 
 	const direction = rCoords.col > kCoords.col ? 1 : -1;
-	const kingToCol = rCoords.col;
-	const rookToCol = kCoords.col;
+	const kingToCol = rCoords.col - direction;
+	const rookToCol = kCoords.col + direction;
 
 	const kingTo = coordsToSquare(kingToCol, kCoords.row);
 	const rookTo = coordsToSquare(rookToCol, kCoords.row);
@@ -601,6 +628,10 @@ export class MoveHistory {
 
 		return lastMove.stateBefore;
 	}
+
+    public getHistory(): ExecutedMove[] {
+        return this.history;
+    }
 
 	public clear(): void {
 		this.history = [];
