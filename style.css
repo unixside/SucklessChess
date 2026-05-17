@@ -23,6 +23,8 @@ button:hover {
 body {
 	display: flex;
 	justify-content: center;
+    align-items: center;
+    flex-direction: column;
 	color: #232136;
 	background-color: #faf4ed;
 }
@@ -37,6 +39,20 @@ header {
 #h1 {
 	font-family: "Latin Modern Sans";
 	font-size: 1em;
+    margin: 0;
+    padding: 0;
+}
+
+#game-status {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    margin: 0.1em;
+}
+
+#turn, #play {
+    margin: 1em;
 }
 
 .game {
@@ -138,4 +154,22 @@ header {
 	height: 30%;
 	background-color: #9ccfd8;
 	border-radius: 50%;
+}
+
+.scoresheet {    
+    border: 3px solid #575279;
+}
+
+.row-table {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.cell-move {
+    text-align: center;
+    background-color: #dfdad9;
+}
+
+.cell-san {
+    text-align: center;
 }

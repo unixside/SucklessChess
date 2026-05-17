@@ -1,189 +1,235 @@
-import { Board } from "./board";
-import { MoveCommand, CastlingMove, PromotionMove, EnPassantMove } from "./commands";
-import { ChessRegExp, DefaultData } from "./constants";
-import { getPieceColor } from "./functions";
-import { GameStateImpl, IGameState } from "./gameState";
+import { Board } from './models/board';
 import {
-	PseudoMove,
-	applyMoveCommand,
-	MoveHistory,
-	ExecutedMove,
-	getLegalMoves,
-	getCastleMoves,
-	get960CastlingSetups,
-} from "./move";
-import { GameState, Square, MoveResult, SpecialEffect, SpecialEffectPiece, Piece } from "./types";
-import { FenValidations } from "./validations";
+    MoveCommand,
+    CastlingMove,
+    PromotionMove,
+    EnPassantMove,
+} from './models/commands';
+import { ChessRegExp, DefaultData } from './utils/constants';
+import { getPieceColor } from './utils/functions';
+import { GameStateImpl, IGameState } from './models/gameState';
+import {
+    applyMoveCommand,
+    MoveHistory,
+    ExecutedMove,
+    getLegalMoves,
+    getCastleMoves,
+    get960CastlingSetups,
+} from './models/move';
+import {
+    GameState,
+    Square,
+    MoveResult,
+    SpecialEffect,
+    Piece,
+} from './models/types';
+import { FenValidations } from './utils/validations';
+import { UCIMove } from './utils/moves';
 
 export class ChessGame {
-	private white?: string;
-	private black?: string;
+    private white?: string;
+    private black?: string;
 
-	private state: GameStateImpl;
-	private moveHistory: MoveHistory;
+    private state: GameStateImpl;
+    private moveHistory: MoveHistory;
 
-	constructor(fen?: string) {
-		const fenString = fen || DefaultData.fen;
-		const result = FenValidations.fen(fenString);
+    constructor(fen?: string, white?: string, black?: string) {
+        const fenString = fen || DefaultData.fen;
+        const result = FenValidations.fen(fenString);
 
-		if (result.IsFailure()) {
-			throw new Error(result.GetError()?.join("\n"));
-		}
+        if (result.IsFailure()) {
+            throw new Error(result.GetError()?.join('\n'));
+        }
 
-		const gameState = result.GetValue() as IGameState;
-		this.state = new GameStateImpl(gameState);
-		this.moveHistory = new MoveHistory();
-	}
+        const gameState = result.GetValue() as IGameState;
+        this.state = new GameStateImpl(gameState);
+        this.moveHistory = new MoveHistory();
 
-	public makeMove(move: PseudoMove): MoveResult {
-		const result: {
-			newState: GameState;
-			newBoard: Board;
-			command: MoveCommand;
-		} | null = applyMoveCommand(this.state, move);
+        this.white = white;
+        this.black = black;
+    }
 
-		if (!result) {
-			return { success: false, move };
-		}
+    public makeMove(move: UCIMove): MoveResult {
+        const result: {
+            newState: GameState;
+            newBoard: Board;
+            command: MoveCommand;
+        } | null = applyMoveCommand(this.state, move);
 
-		const { newState, command } = result;
-		const specialEffect = this.detectSpecialEffect(move, command);
+        if (!result) {
+            return { success: false, move };
+        }
 
-		const executedMove: ExecutedMove = {
-			command,
-			stateBefore: this.cloneState(),
-		};
+        const { newState, command } = result;
+        const specialEffect = this.detectSpecialEffect(move, command);
 
-		this.state = new GameStateImpl(newState);
-		this.moveHistory.add(executedMove);
+        const executedMove: ExecutedMove = {
+            command,
+            stateBefore: this.cloneState(),
+        };
 
-		return { success: true, move, specialEffect };
-	}
+        this.state = new GameStateImpl(newState);
+        this.moveHistory.add(executedMove);
 
-	private detectSpecialEffect(move: PseudoMove, command: MoveCommand): SpecialEffect | undefined {
-		if (command instanceof CastlingMove) {
-			const castling = command as CastlingMove;
+        return { success: true, move, specialEffect };
+    }
 
-			return {
-				type: "castling",
-				pieces: [
-					{ from: move.from, to: move.to, piece: castling.getKingPiece() },
-					{ from: castling.getRookFrom(), to: castling.getRookTo(), piece: castling.getRookPiece() },
-				],
-			};
-		}
+    private detectSpecialEffect(
+        move: UCIMove,
+        command: MoveCommand,
+    ): SpecialEffect | undefined {
+        if (command instanceof CastlingMove) {
+            const castling = command as CastlingMove;
 
-		if (command instanceof PromotionMove) {
-			const promotion = command as PromotionMove;
-			return {
-				type: "promotion",
-				pieces: [
-					{ from: move.from, to: move.to, piece: promotion.getPromotedPiece() },
-				],
-			};
-		}
+            return {
+                type: 'castling',
+                pieces: [
+                    {
+                        from: move.from,
+                        to: move.to,
+                        piece: castling.getKingPiece(),
+                    },
+                    {
+                        from: castling.getRookFrom(),
+                        to: castling.getRookTo(),
+                        piece: castling.getRookPiece(),
+                    },
+                ],
+            };
+        }
 
-		if (command instanceof EnPassantMove) {
-			const enPassant = command as EnPassantMove;
-			const capturedPawn = this.state.board.getPieceAt(enPassant.getCapturedPawnSquare());
-			if (capturedPawn) {
-				return {
-					type: "enpassant",
-					pieces: [
-						{ from: move.from, to: move.to, piece: this.state.board.getPieceAt(move.to) as Piece },
-						{ from: enPassant.getCapturedPawnSquare(), to: enPassant.getCapturedPawnSquare(), piece: capturedPawn },
-					],
-				};
-			}
-		}
+        if (command instanceof PromotionMove) {
+            const promotion = command as PromotionMove;
+            return {
+                type: 'promotion',
+                pieces: [
+                    {
+                        from: move.from,
+                        to: move.to,
+                        piece: promotion.getPromotedPiece(),
+                    },
+                ],
+            };
+        }
 
-		return undefined;
-	}
+        if (command instanceof EnPassantMove) {
+            const enPassant = command as EnPassantMove;
+            const capturedPawn = this.state.board.getPieceAt(
+                enPassant.getCapturedPawnSquare(),
+            );
+            if (capturedPawn) {
+                return {
+                    type: 'enpassant',
+                    pieces: [
+                        {
+                            from: move.from,
+                            to: move.to,
+                            piece: this.state.board.getPieceAt(
+                                move.to,
+                            ) as Piece,
+                        },
+                        {
+                            from: enPassant.getCapturedPawnSquare(),
+                            to: enPassant.getCapturedPawnSquare(),
+                            piece: capturedPawn,
+                        },
+                    ],
+                };
+            }
+        }
 
-	public undo(): boolean {
-		const previousState = this.moveHistory.undo(this.state);
-		if (!previousState) return false;
+        return undefined;
+    }
 
-		this.state = new GameStateImpl(previousState);
-		return true;
-	}
+    public undo(): boolean {
+        const previousState = this.moveHistory.undo(this.state);
+        if (!previousState) return false;
 
-	private cloneState(): IGameState {
-		return {
-			board: this.state.board.cloneBoard(),
-			activeColor: this.state.activeColor,
-			availableCastlings: { ...this.state.availableCastlings },
-			enPassant: this.state.enPassant,
-			halfMove: this.state.halfMove,
-			fullMove: this.state.fullMove,
-		};
-	}
+        this.state = new GameStateImpl(previousState);
+        return true;
+    }
 
-	public getBoard(): Board {
-		return this.state.board;
-	}
+    private cloneState(): IGameState {
+        return {
+            board: this.state.board.cloneBoard(),
+            activeColor: this.state.activeColor,
+            availableCastlings: { ...this.state.availableCastlings },
+            enPassant: this.state.enPassant,
+            halfMove: this.state.halfMove,
+            fullMove: this.state.fullMove,
+        };
+    }
 
-	public getState(): GameStateImpl {
-		return this.state;
-	}
+    public getBoard(): Board {
+        return this.state.board;
+    }
 
-	public getMoves(from: Square): PseudoMove[] {
-		const piece = this.getBoard().getPieceAt(from);
+    public getState(): GameStateImpl {
+        return this.state;
+    }
 
-		if (piece === null || piece === undefined) {
-			return [];
-		}
+    public getMoves(from: Square): UCIMove[] {
+        const piece = this.getBoard().getPieceAt(from);
 
-		if (getPieceColor(piece) !== this.state.activeColor) {
-			return [];
-		}
+        if (piece === null || piece === undefined) {
+            return [];
+        }
 
-		const moves = getLegalMoves(this.state, from);
+        if (getPieceColor(piece) !== this.state.activeColor) {
+            return [];
+        }
 
-	if (ChessRegExp.pieces.king.test(piece)) {
-			const castles = getCastleMoves(this.state);
-			for (const castle of castles) {
-				if (castle.from === from) {
-					const exists = moves.some(m => m.from === castle.from && m.to === castle.to);
-					if (!exists) {
-						moves.push(castle);
-					}
-				}
-			}
+        const moves = getLegalMoves(this.state, from);
 
-			const setups = get960CastlingSetups(this.state, this.state.activeColor);
-			for (const setup of setups) {
-				if (setup.kingFrom === from) {
-					moves.push({
-						from: setup.kingFrom,
-						to: setup.kingTo,
-					});
-				}
-			}
-		}
+        if (ChessRegExp.pieces.king.test(piece)) {
+            const castles = getCastleMoves(this.state);
+            for (const castle of castles) {
+                if (castle.from === from) {
+                    const exists = moves.some(
+                        (m) => m.from === castle.from && m.to === castle.to,
+                    );
+                    if (!exists) {
+                        moves.push(castle);
+                    }
+                }
+            }
 
-		return moves;
-	}
+            const setups = get960CastlingSetups(
+                this.state,
+                this.state.activeColor,
+            );
+            for (const setup of setups) {
+                if (setup.kingFrom === from) {
+                    moves.push({
+                        from: setup.kingFrom,
+                        to: setup.kingTo,
+                    });
+                }
+            }
+        }
 
-	public printBoard() {
-		console.log(this.state.board.toPiecePlacement());
-	}
+        return moves;
+    }
 
-	public toFen(): string {
-		const board = this.state.board.toPiecePlacement() || "";
-		const activeColor = this.state.activeColor;
-		
-		let castlings = "";
-		if (this.state.availableCastlings.K) castlings += "K";
-		if (this.state.availableCastlings.Q) castlings += "Q";
-		if (this.state.availableCastlings.k) castlings += "k";
-		if (this.state.availableCastlings.q) castlings += "q";
-		if (castlings === "") castlings = "-";
+    public printBoard() {
+        console.log(this.state.board.toPiecePlacement());
+    }
 
-		const enPassant = this.state.enPassant;
-		const halfMove = this.state.halfMove;
-		const fullMove = this.state.fullMove;
+    public toFen(): string {
+        const board = this.state.board.toPiecePlacement() || '';
+        const activeColor = this.state.activeColor;
 
-		return `${board} ${activeColor} ${castlings} ${enPassant} ${halfMove} ${fullMove}`;
-	}
+        let castlings = '';
+        if (this.state.availableCastlings.K) castlings += 'K';
+        if (this.state.availableCastlings.Q) castlings += 'Q';
+        if (this.state.availableCastlings.k) castlings += 'k';
+        if (this.state.availableCastlings.q) castlings += 'q';
+        if (castlings === '') castlings = '-';
+
+        const enPassant = this.state.enPassant;
+        const halfMove = this.state.halfMove;
+        const fullMove = this.state.fullMove;
+
+        return `${board} ${activeColor} ${castlings} ${enPassant} ${halfMove} ${fullMove}`;
+    }
 }
